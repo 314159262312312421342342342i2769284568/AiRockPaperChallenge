@@ -132,6 +132,9 @@ def capture_training_image():
         # Extract enhanced features
         features = extract_features(processed_img)
         
+        # Store feature dimensions for debugging
+        logger.debug(f"Captured feature vector with shape: {features.shape if hasattr(features, 'shape') else len(features)}")
+        
         # Add to training data
         training_data[gesture].append(features)
         
@@ -177,18 +180,74 @@ def train_model():
     
     try:
         from models.gesture_classifier import GestureClassifier
+        import logging
         
-        # Prepare training data
+        # Debug the feature vectors dimensions
+        rock_features = np.array(training_data['rock'])
+        paper_features = np.array(training_data['paper'])
+        scissors_features = np.array(training_data['scissors'])
+        
+        logger.debug(f"Feature dimensions - Rock: {[f.shape if hasattr(f, 'shape') else len(f) for f in rock_features]}")
+        logger.debug(f"Feature dimensions - Paper: {[f.shape if hasattr(f, 'shape') else len(f) for f in paper_features]}")
+        logger.debug(f"Feature dimensions - Scissors: {[f.shape if hasattr(f, 'shape') else len(f) for f in scissors_features]}")
+        
+        # Find the most common feature length to standardize
+        all_lengths = []
+        for features in [rock_features, paper_features, scissors_features]:
+            for f in features:
+                if hasattr(f, 'shape'):
+                    all_lengths.append(f.shape[0])
+                elif hasattr(f, '__len__'):
+                    all_lengths.append(len(f))
+        
+        # Get mode (most common) length as our standard
+        from collections import Counter
+        length_counts = Counter(all_lengths)
+        if length_counts:
+            standard_length = length_counts.most_common(1)[0][0]
+            logger.debug(f"Using standard feature length: {standard_length}")
+        else:
+            standard_length = 1000  # Fallback default
+            logger.warning(f"No clear standard feature length, using default: {standard_length}")
+        
+        # Normalize all features to same length with padding/truncation
+        def normalize_features(features_list, target_length):
+            normalized = []
+            for f in features_list:
+                if hasattr(f, 'shape') and len(f.shape) > 0:
+                    current_len = f.shape[0]
+                    if current_len > target_length:
+                        # Truncate if too long
+                        normalized.append(f[:target_length])
+                    elif current_len < target_length:
+                        # Pad with zeros if too short
+                        padded = np.zeros(target_length)
+                        padded[:current_len] = f
+                        normalized.append(padded)
+                    else:
+                        normalized.append(f)
+                elif hasattr(f, '__len__'):
+                    normalized.append(np.zeros(target_length))  # Use zeros for irregular data
+                else:
+                    normalized.append(np.zeros(target_length))  # Fallback
+            return np.array(normalized)
+        
+        # Normalize feature vectors to same length
+        rock_normalized = normalize_features(rock_features, standard_length)
+        paper_normalized = normalize_features(paper_features, standard_length)
+        scissors_normalized = normalize_features(scissors_features, standard_length)
+        
+        # Prepare training data with consistent dimensions
         X = np.vstack([
-            np.array(training_data['rock']),
-            np.array(training_data['paper']),
-            np.array(training_data['scissors'])
+            rock_normalized,
+            paper_normalized, 
+            scissors_normalized
         ])
         
         y = np.hstack([
-            np.full(len(training_data['rock']), 'rock'),
-            np.full(len(training_data['paper']), 'paper'),
-            np.full(len(training_data['scissors']), 'scissors')
+            np.full(len(rock_normalized), 'rock'),
+            np.full(len(paper_normalized), 'paper'),
+            np.full(len(scissors_normalized), 'scissors')
         ])
         
         # Create and train the gesture classifier
