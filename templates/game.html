@@ -53,9 +53,16 @@
                             <video id="webcam" autoplay playsinline class="img-fluid"></video>
                             <canvas id="canvas" style="display: none;"></canvas>
                             
-                            <!-- Overlay for countdown -->
-                            <div id="camera-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="display: none;">
-                                <div id="countdown" class="display-1 text-white" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">3</div>
+                            <!-- Enhanced overlay for countdown with animation effects -->
+                            <div id="camera-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="display: none; background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); z-index: 10;">
+                                <div class="position-relative">
+                                    <!-- Circular progress indicator -->
+                                    <div class="countdown-ring"></div>
+                                    <!-- Countdown number -->
+                                    <div id="countdown" class="display-1 text-white fw-bold countdown-number">3</div>
+                                    <!-- Pulse effect behind number -->
+                                    <div class="countdown-pulse"></div>
+                                </div>
                             </div>
                         </div>
                     </div>

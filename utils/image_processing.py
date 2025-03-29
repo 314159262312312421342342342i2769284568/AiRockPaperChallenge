@@ -195,28 +195,77 @@ def extract_features(img):
                 try:
                     defects = cv2.convexityDefects(max_contour, hull_indices)
                     if defects is not None:
-                        # Count significant defects (potential finger gaps)
+                        # Enhanced defect analysis for better scissors detection
                         significant_defects = 0
                         defect_depths = []
+                        defect_angles = []  # Track angles between defect points - critical for scissors
+                        finger_tips = []    # Store potential fingertip coordinates
                         
+                        # First pass: identify significant defects and potential finger tips
                         for i in range(defects.shape[0]):
                             s, e, f, d = defects[i, 0]
-                            depth = d / 256.0  # Normalize depth
-                            if depth > 5:  # Lower threshold to detect more finger gaps
+                            start_point = tuple(max_contour[s][0])
+                            end_point = tuple(max_contour[e][0])
+                            far_point = tuple(max_contour[f][0])
+                            
+                            # Calculate vectors
+                            v1 = np.array(start_point) - np.array(far_point)
+                            v2 = np.array(end_point) - np.array(far_point)
+                            
+                            # Normalize vectors
+                            v1_norm = np.sqrt(np.sum(v1**2))
+                            v2_norm = np.sqrt(np.sum(v2**2))
+                            
+                            # Calculate angle (in degrees) between vectors - key for distinguishing scissors
+                            if v1_norm > 0 and v2_norm > 0:
+                                cos_angle = np.dot(v1, v2) / (v1_norm * v2_norm)
+                                # Handle numerical instability
+                                if cos_angle > 1.0:
+                                    cos_angle = 1.0
+                                if cos_angle < -1.0:
+                                    cos_angle = -1.0
+                                angle = np.degrees(np.arccos(cos_angle))
+                                defect_angles.append(angle)
+                            
+                            # Normalize depth and use lower threshold to capture more detail
+                            depth = d / 256.0
+                            if depth > 3.5:  # Lower threshold to detect more finger gaps
                                 significant_defects += 1
                                 defect_depths.append(depth)
+                                # Add potential fingertips
+                                finger_tips.append(start_point)
+                                finger_tips.append(end_point)
                         
-                        # Average depth of defects
+                        # Calculate additional statistics from defect information
                         avg_depth = np.mean(defect_depths) if defect_depths else 0
                         max_depth = np.max(defect_depths) if defect_depths else 0
                         
+                        # Calculate angle statistics - helps detect scissors' specific pattern
+                        avg_angle = np.mean(defect_angles) if defect_angles else 0
+                        min_angle = np.min(defect_angles) if defect_angles else 0
+                        
+                        # Detect scissors pattern: typically has 1-2 deep defects with specific angle pattern
+                        scissors_pattern = 0
+                        if len(defect_angles) >= 1:
+                            # Scissors typically have angles between 30-70 degrees
+                            scissors_angles = [a for a in defect_angles if 30 <= a <= 80]
+                            if len(scissors_angles) >= 1:
+                                scissors_pattern = len(scissors_angles) / len(defect_angles)
+                        
                         # Add these to contour features - very useful for distinguishing gestures
-                        contour_features.extend([significant_defects, avg_depth, max_depth])
+                        contour_features.extend([
+                            significant_defects, 
+                            avg_depth, 
+                            max_depth, 
+                            avg_angle / 180.0,  # Normalize to [0,1]
+                            min_angle / 180.0,  # Normalize to [0,1]
+                            scissors_pattern    # Specific scissors detection ratio
+                        ])
                 except:
-                    # If convexity defects calculation fails, add zeros
-                    contour_features.extend([0, 0, 0])
+                    # If convexity defects calculation fails, add zeros for all defect-related features
+                    contour_features.extend([0, 0, 0, 0, 0, 0])  # 6 zeros to match our feature count
             else:
-                contour_features.extend([0, 0, 0])
+                contour_features.extend([0, 0, 0, 0, 0, 0])  # 6 zeros to match our feature count
             
             # Calculate solidity (area / hull_area) - useful for rock vs paper
             solidity = float(area) / hull_area if hull_area > 0 else 0
