@@ -126,8 +126,8 @@ def capture_training_image():
         # Use enhanced image processing from utils module
         from utils.image_processing import preprocess_image, extract_features
         
-        # Process the image with improved methods
-        processed_img = preprocess_image(img)
+        # Process the image with improved methods - now returns processed image and display image
+        processed_img, _ = preprocess_image(img)
         
         # Extract enhanced features
         features = extract_features(processed_img)
@@ -236,8 +236,8 @@ def predict_gesture():
         # Use the enhanced image processing from utils module
         from utils.image_processing import preprocess_image, extract_features
         
-        # Process the image with improved methods
-        processed_img = preprocess_image(img)
+        # Process the image with improved methods - now returns processed image and display image
+        processed_img, _ = preprocess_image(img)
         
         # Extract enhanced features
         features = extract_features(processed_img)
