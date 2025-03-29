@@ -148,43 +148,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Reset button click handler with enhanced feedback
-    resetBtn.addEventListener('click', () => {
+    resetBtn.addEventListener('click', async () => {
         // Add reset animation
-        const animateReset = () => {
+        const animateReset = async () => {
             // Apply fade-out effect
             gameContainer.style.opacity = '0.5';
             gameContainer.style.transition = 'opacity 0.3s ease';
             
-            setTimeout(() => {
-                // Reset game state
-                playerScore.textContent = '0';
-                computerScore.textContent = '0';
-                roundsPlayed.textContent = '0';
-                roundNumber.textContent = '0';
-                
-                // Reset displays
-                playerGestureDisplay.innerHTML = '<i class="bi bi-hand-index"></i>';
-                computerGestureDisplay.innerHTML = '<i class="bi bi-cpu"></i>';
-                playerGestureText.textContent = 'Ready';
-                computerGestureText.textContent = 'Ready';
-                resultText.textContent = 'Make your move!';
-                resultText.className = 'fs-2';
-                
-                // Reset info with icon
-                detectionInfo.className = 'alert alert-success';
-                detectionInfo.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <div class="me-3 fs-3"><i class="bi bi-check-circle"></i></div>
-                        <div>Game reset successfully! Ready to play.</div>
-                    </div>
-                `;
-                
-                // Apply fade-in effect
-                gameContainer.style.opacity = '1';
-            }, 300);
+            // Call the backend to reset game state
+            await resetGameForNextRound();
+            
+            // Apply fade-in effect
+            gameContainer.style.opacity = '1';
         };
         
-        animateReset();
+        await animateReset();
     });
     
     // Check if model is trained
@@ -224,6 +202,51 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error checking model status:', error);
             showError('Error checking model status: ' + error.message);
+        }
+    }
+    
+    // Reset gameplay for a fresh round
+    async function resetGameForNextRound() {
+        try {
+            const response = await fetch('/reset_game', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('Game state reset for next round');
+                
+                // Update UI with reset state
+                playerScore.textContent = '0';
+                computerScore.textContent = '0';
+                roundsPlayed.textContent = '0';
+                roundNumber.textContent = '0';
+                
+                // Reset UI
+                playerGestureDisplay.innerHTML = '<i class="bi bi-hand-index"></i>';
+                computerGestureDisplay.innerHTML = '<i class="bi bi-cpu"></i>';
+                playerGestureText.textContent = 'Ready';
+                computerGestureText.textContent = 'Ready';
+                resultText.textContent = 'Make your move!';
+                resultText.className = 'fs-2';
+                
+                // Update status
+                detectionInfo.className = 'alert alert-success';
+                detectionInfo.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-3"><i class="bi bi-check-circle"></i></div>
+                        <div>Ready for a new game! Click "Play Round" to start.</div>
+                    </div>
+                `;
+            } else {
+                console.error('Failed to reset game state:', data.error);
+            }
+        } catch (error) {
+            console.error('Error resetting game state:', error);
         }
     }
     
@@ -347,6 +370,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     playerScore.classList.remove('score-change');
                     computerScore.classList.remove('score-change');
                     roundsPlayed.classList.remove('score-change');
+                    
+                    // Add a "Play Again" button after delay
+                    const playAgainButton = document.createElement('button');
+                    playAgainButton.className = 'btn btn-primary mt-3 w-100';
+                    playAgainButton.innerHTML = '<i class="bi bi-play-circle me-2"></i> Play Again';
+                    playAgainButton.onclick = () => {
+                        // Re-enable the play button 
+                        playBtn.disabled = false;
+                        playBtn.click();
+                        playAgainButton.remove();
+                    };
+                    
+                    // Add the button to the result display
+                    const resultDisplay = document.getElementById('result-display');
+                    if (!document.getElementById('play-again-btn')) {
+                        playAgainButton.id = 'play-again-btn';
+                        resultDisplay.appendChild(playAgainButton);
+                    }
+                    
+                    // Update the instructions message
+                    detectionInfo.className = 'alert alert-info border-0 mb-3';
+                    detectionInfo.innerHTML = `
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 fs-3"><i class="bi bi-info-circle"></i></div>
+                            <div>
+                                <strong>Ready for next round!</strong>
+                                <div>Click "Play Again" to show a new gesture.</div>
+                            </div>
+                        </div>
+                    `;
                 }, 1200);
                 
             }, 500); // Delay showing result

@@ -439,5 +439,16 @@ def determine_winner(player, computer):
     else:
         return 'lose'
 
+@app.route('/reset_game', methods=['POST'])
+def reset_game():
+    """Reset the game state to start fresh for a new game"""
+    reset_game_state()
+    logger.debug("Game state reset")
+    return jsonify({
+        'success': True,
+        'message': 'Game reset successfully',
+        'game_state': game_state
+    })
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
