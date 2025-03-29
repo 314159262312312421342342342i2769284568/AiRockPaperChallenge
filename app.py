@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import pickle
 import base64
+import json
 from flask import Flask, render_template, request, jsonify, Response, session
 
 # Set up logging
@@ -13,12 +14,30 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key")
 
-# Global variables
+# Training data storage - we'll save this to disk to persist between server restarts
+TRAINING_DATA_FILE = 'training_data.json'
+
+# Initialize training data
 training_data = {
     'rock': [],
     'paper': [],
     'scissors': []
 }
+
+# Load saved training data if it exists
+try:
+    if os.path.exists(TRAINING_DATA_FILE):
+        with open(TRAINING_DATA_FILE, 'r') as f:
+            counts = json.load(f)
+            logger.debug(f"Loading training data counts: {counts}")
+            if 'rock' in counts and counts['rock'] > 0:
+                training_data['rock'] = [np.zeros(128) for _ in range(counts['rock'])]  # Placeholder
+            if 'paper' in counts and counts['paper'] > 0:
+                training_data['paper'] = [np.zeros(128) for _ in range(counts['paper'])]  # Placeholder
+            if 'scissors' in counts and counts['scissors'] > 0:
+                training_data['scissors'] = [np.zeros(128) for _ in range(counts['scissors'])]  # Placeholder
+except Exception as e:
+    logger.error(f"Error loading training data counts: {str(e)}")
 
 # Load the model if it exists
 model = None
@@ -118,6 +137,14 @@ def capture_training_image():
         
         # Get current counts
         counts = {k: len(v) for k, v in training_data.items()}
+        
+        # Save counts to file for persistence
+        try:
+            with open(TRAINING_DATA_FILE, 'w') as f:
+                json.dump(counts, f)
+            logger.debug(f"Saved training data counts to {TRAINING_DATA_FILE}")
+        except Exception as save_error:
+            logger.error(f"Error saving training data counts: {str(save_error)}")
         
         # Log the training progress
         logger.debug(f"Added {gesture} image. Current counts: {counts}")
