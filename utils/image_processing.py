@@ -103,7 +103,7 @@ def preprocess_image(img, size=(150, 150)):
 def extract_features(img):
     """
     Significantly enhanced feature extraction with multiple advanced techniques
-    tailored for rock, paper, scissors gesture recognition
+    tailored for rock, paper, scissors gesture recognition with improved accuracy
     
     Args:
         img: Preprocessed image
@@ -125,7 +125,7 @@ def extract_features(img):
         # Calculate HOG features - captures shape information
         # Use smaller cells for finer detail on hand shapes
         h, w = img.shape
-        cell_size = 10  # adjusted for balance between detail and generalization
+        cell_size = 8  # reduced for more detail on finger positions
         block_size = 2  # number of cells per block
         
         if h >= 32 and w >= 32:  # Ensure image is large enough for HOG
@@ -171,7 +171,7 @@ def extract_features(img):
                         for i in range(defects.shape[0]):
                             s, e, f, d = defects[i, 0]
                             depth = d / 256.0  # Normalize depth
-                            if depth > 10:  # Threshold for significant defect
+                            if depth > 5:  # Lower threshold to detect more finger gaps
                                 significant_defects += 1
                                 defect_depths.append(depth)
                         

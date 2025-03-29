@@ -90,7 +90,8 @@ class GestureClassifier:
         self.class_labels = None  # Store the class labels
         self.feature_importances = None  # Store feature importances
         self.validation_score = 0  # Track validation score
-        self.confidence_threshold = 0.65  # Minimum confidence for reliable predictions
+        self.confidence_threshold = 0.5  # Reduced threshold to allow more predictions
+        self.model_metrics = {}  # Store metrics per class
     
     def train(self, X, y):
         """
@@ -117,32 +118,33 @@ class GestureClassifier:
             X_train_scaled = self.scaler.fit_transform(X_train)
             X_val_scaled = self.scaler.transform(X_val)
             
-            # Individual models with optimized hyperparameters
+            # Enhanced models with optimized hyperparameters for better gesture discrimination
             rf = RandomForestClassifier(
-                n_estimators=150,
-                max_depth=15,
-                min_samples_split=4,
+                n_estimators=200,  # More trees for better ensemble effect
+                max_depth=10,      # Reduced depth to avoid overfitting to rock
+                min_samples_split=5,
                 min_samples_leaf=2,
                 bootstrap=True,
-                class_weight='balanced',
+                class_weight='balanced_subsample',  # Better handling of class imbalance
+                criterion='entropy',  # Different split criterion
                 n_jobs=-1,
                 random_state=42
             )
             
             gb = GradientBoostingClassifier(
-                n_estimators=150,
-                learning_rate=0.075,
+                n_estimators=200,
+                learning_rate=0.05,  # Lower learning rate for better generalization
                 max_depth=4,
                 subsample=0.8,
-                min_samples_split=4,
+                min_samples_split=5,
                 min_samples_leaf=2,
                 random_state=42
             )
             
             svm = SVC(
                 kernel='rbf',
-                C=20,
-                gamma='auto',
+                C=10,          # Lower C to reduce overfitting
+                gamma='scale', # Better gamma strategy
                 probability=True,
                 class_weight='balanced',
                 random_state=42
@@ -215,18 +217,66 @@ class GestureClassifier:
             # Scale feature vector
             X_scaled = self.scaler.transform(X_input)
             
-            # Get probability scores
+            # Get predictions from all models in the ensemble to counteract overfitting
+            individual_predictions = []
+            all_probas = []
+            
+            if hasattr(self.model, 'models'):
+                for name, model in self.model.models:
+                    # Get individual model prediction
+                    pred = model.predict(X_scaled)[0]
+                    individual_predictions.append(pred)
+                    
+                    # Get probabilities if available
+                    if hasattr(model, 'predict_proba'):
+                        proba = model.predict_proba(X_scaled)[0]
+                        all_probas.append(proba)
+            
+                # If we have multiple models with different predictions, apply special logic
+                if len(set(individual_predictions)) > 1:
+                    # Not all models agree - implement a voting system
+                    from collections import Counter
+                    # Count occurrences of each prediction
+                    pred_counts = Counter(individual_predictions)
+                    # Get the most common prediction
+                    prediction, count = pred_counts.most_common(1)[0]
+                    
+                    # If it's a real majority (more than half), use that prediction
+                    if count > len(individual_predictions) / 2:
+                        logger.debug(f"Majority vote prediction: {prediction} with {count}/{len(individual_predictions)} votes")
+                        return prediction
+            
+            # Get ensemble probability scores
             probas = self.model.predict_proba(X_scaled)[0]
             max_proba_idx = np.argmax(probas)
             max_proba = probas[max_proba_idx]
             prediction = self.class_labels[max_proba_idx]
             
-            logger.debug(f"Prediction: {prediction}, confidence: {max_proba:.4f}")
+            # Check if probabilities are too close (within 20%)
+            sorted_indices = np.argsort(probas)
+            if len(sorted_indices) >= 2:
+                top1_idx = sorted_indices[-1]
+                top2_idx = sorted_indices[-2]
+                
+                top1_prob = probas[top1_idx]
+                top2_prob = probas[top2_idx]
+                
+                # If the difference is small, look for additional evidence
+                if (top1_prob - top2_prob) < 0.2:
+                    logger.debug(f"Close prediction: {self.class_labels[top1_idx]} ({top1_prob:.2f}) vs {self.class_labels[top2_idx]} ({top2_prob:.2f})")
+                    
+                    # Use more aggressive tiebreaker by checking individual model predictions
+                    if len(individual_predictions) > 0 and individual_predictions.count(self.class_labels[top2_idx]) > individual_predictions.count(self.class_labels[top1_idx]):
+                        # The 2nd most likely class has more individual model votes
+                        prediction = self.class_labels[top2_idx]
+                        max_proba = top2_prob
+                        logger.debug(f"Switched prediction to {prediction} based on individual model votes")
             
-            # If confidence is too low, it might be unreliable
+            logger.debug(f"Final prediction: {prediction}, confidence: {max_proba:.4f}")
+            
+            # If confidence is too low, it might be unreliable but we still return best guess
             if max_proba < self.confidence_threshold:
                 logger.warning(f"Low confidence prediction: {prediction} with confidence {max_proba:.4f}")
-                # For very low confidence, we could consider fallbacks here
             
             return prediction
             
@@ -241,13 +291,27 @@ class GestureClassifier:
                 if hasattr(self.model, 'predict'):
                     return self.model.predict(X.reshape(1, -1))[0]
                 elif hasattr(self.model, 'models') and self.model.models:
-                    # If model is our ensemble, try first model
-                    return self.model.models[0][1].predict(X.reshape(1, -1))[0]
-            except:
+                    # Get individual model predictions for fallback
+                    preds = []
+                    for _, model in self.model.models:
+                        if hasattr(model, 'predict'):
+                            preds.append(model.predict(X.reshape(1, -1))[0])
+                    
+                    if preds:
+                        # Return the most common prediction
+                        from collections import Counter
+                        most_common = Counter(preds).most_common(1)[0][0]
+                        return most_common
+            except Exception as fallback_error:
+                logger.error(f"Fallback prediction error: {str(fallback_error)}")
                 pass
                 
-            # As a very last resort, return most common class
-            return self.class_labels[0] if self.class_labels is not None else "unknown"
+            # As a very last resort, return a random choice to avoid biasing toward rock
+            import random
+            if self.class_labels is not None and len(self.class_labels) > 0:
+                return random.choice(self.class_labels)
+            else:
+                return "unknown"
     
     def save_model(self, filepath='hand_gesture_model.pkl'):
         """
