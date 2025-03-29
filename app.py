@@ -326,6 +326,11 @@ def train_model():
             # Update global model
             model = classifier
             
+            # Save the standard feature length to a file for consistency in predictions
+            with open('feature_length.txt', 'w') as f:
+                f.write(str(standard_length))
+            logger.debug(f"Saved standard feature length ({standard_length}) to feature_length.txt")
+            
             logger.info("Model trained and saved successfully")
             return jsonify({'success': True, 'message': 'Model trained successfully with improved accuracy!'})
         else:
@@ -365,6 +370,50 @@ def predict_gesture():
         
         # Extract enhanced features
         features = extract_features(processed_img)
+        
+        # Normalize feature length to match training data
+        try:
+            # Read the standard feature length from the file if available
+            standard_length = None
+            try:
+                if os.path.exists('feature_length.txt'):
+                    with open('feature_length.txt', 'r') as f:
+                        standard_length = int(f.read().strip())
+                        logger.debug(f"Using stored feature length: {standard_length}")
+            except:
+                pass
+                
+            # Get most common length from training data if file doesn't exist
+            if standard_length is None:
+                # Find the standard length used during training (from the model)
+                if hasattr(model, 'model') and hasattr(model.model, 'feature_names_in_'):
+                    standard_length = len(model.model.feature_names_in_)
+                    logger.debug(f"Using feature length from model: {standard_length}")
+                elif isinstance(model, dict) and 'model' in model:
+                    model_obj = model.get('model')
+                    if hasattr(model_obj, 'feature_names_in_'):
+                        standard_length = len(model_obj.feature_names_in_)
+                        logger.debug(f"Using feature length from dict model: {standard_length}")
+                
+            # If we still don't have a standard length, use the current feature length
+            if standard_length is None:
+                standard_length = len(features)
+                logger.debug(f"Using current feature length: {standard_length}")
+                
+            # Normalize feature length
+            if len(features) > standard_length:
+                # Truncate
+                features = features[:standard_length]
+                logger.debug(f"Truncated feature vector to {standard_length}")
+            elif len(features) < standard_length:
+                # Pad with zeros
+                padded = np.zeros(standard_length)
+                padded[:len(features)] = features
+                features = padded
+                logger.debug(f"Padded feature vector to {standard_length}")
+        except Exception as norm_error:
+            logger.error(f"Error normalizing feature length: {str(norm_error)}")
+            # Continue with original features, model will handle or give informative error
         
         # Make prediction using our improved classifier
         try:

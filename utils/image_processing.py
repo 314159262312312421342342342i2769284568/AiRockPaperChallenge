@@ -4,13 +4,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def preprocess_image(img, size=(150, 150)):
+def preprocess_image(img, size=(110, 110)):
     """
     Significantly enhanced preprocessing for much better hand gesture recognition
     
     Args:
         img: Input image (BGR format from OpenCV)
-        size: Target size for resizing (default: 150x150 for more detail)
+        size: Target size for resizing (default: 110x110 to maintain feature consistency)
     
     Returns:
         Preprocessed image and original processed image for display
@@ -121,25 +121,56 @@ def extract_features(img):
         pixel_features = downsampled.flatten() / 255.0
         features.append(pixel_features)
         
-        # 2. Histogram of Oriented Gradients (HOG) features
-        # Calculate HOG features - captures shape information
-        # Use smaller cells for finer detail on hand shapes
+        # 2. Histogram of Oriented Gradients (HOG) features - Fixed to ensure compatibility
         h, w = img.shape
-        cell_size = 8  # reduced for more detail on finger positions
-        block_size = 2  # number of cells per block
         
-        if h >= 32 and w >= 32:  # Ensure image is large enough for HOG
-            hog = cv2.HOGDescriptor(
-                (w, h),                   # winSize
-                (block_size * cell_size, block_size * cell_size),  # blockSize
-                (cell_size, cell_size),  # blockStride
-                (cell_size, cell_size),  # cellSize
-                9                        # nbins
-            )
-            hog_features = hog.compute(img)
-            if hog_features is not None:
-                hog_features = hog_features.flatten()
-                features.append(hog_features)
+        # Make sure HOG parameters are valid for the image size
+        # Required: (winSize.width - blockSize.width) % blockStride.width == 0
+        cell_size = 8  # cell size
+        block_size = 2  # cells per block
+        
+        # Ensure proper alignment for HOG algorithm
+        if h >= 32 and w >= 32:
+            # Calculate valid dimensions that will work with these parameters
+            # Making sure winSize - blockSize is divisible by blockStride
+            block_pixels = block_size * cell_size
+            stride_pixels = cell_size
+            
+            # Adjust width and height to be compatible with HOG parameters
+            w_adjusted = ((w // stride_pixels) * stride_pixels)
+            h_adjusted = ((h // stride_pixels) * stride_pixels)
+            
+            if w_adjusted >= block_pixels and h_adjusted >= block_pixels:
+                # Resize image to adjusted dimensions if needed
+                if w != w_adjusted or h != h_adjusted:
+                    img_resized = cv2.resize(img, (w_adjusted, h_adjusted))
+                else:
+                    img_resized = img
+                
+                try:
+                    # Configure HOG with values known to work
+                    hog = cv2.HOGDescriptor(
+                        (w_adjusted, h_adjusted),                    # winSize
+                        (block_pixels, block_pixels),                # blockSize
+                        (stride_pixels, stride_pixels),              # blockStride
+                        (cell_size, cell_size),                      # cellSize
+                        9                                           # nbins
+                    )
+                    
+                    # Compute HOG features
+                    hog_features = hog.compute(img_resized)
+                    if hog_features is not None and hog_features.size > 0:
+                        hog_features = hog_features.flatten()
+                        features.append(hog_features)
+                except Exception as hog_error:
+                    logger.warning(f"HOG feature extraction error: {str(hog_error)}")
+                    # If HOG fails, add basic gradient features instead
+                    gx = cv2.Sobel(img, cv2.CV_32F, 1, 0)
+                    gy = cv2.Sobel(img, cv2.CV_32F, 0, 1)
+                    mag, ang = cv2.cartToPolar(gx, gy)
+                    # Get histogram of gradient magnitudes - simpler than HOG but still useful
+                    hist_mag = cv2.calcHist([mag], [0], None, [16], [0, np.pi*2])
+                    features.append(hist_mag.flatten())
         
         # 3. Contour and shape features - critical for hand gesture recognition
         contours, _ = cv2.findContours(img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
