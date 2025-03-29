@@ -5,73 +5,179 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Rock Paper Scissors</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container mt-5">
+    <div class="hero-section py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 text-center">
+                    <h1 class="display-1 mb-4 text-gradient">AI Rock Paper Scissors</h1>
+                    <p class="lead fs-3 mb-5">Play the classic game against AI using your webcam and hand gestures</p>
+                    
+                    <div class="d-flex justify-content-center mt-2 mb-5 gap-4">
+                        <a href="/training" class="btn btn-primary btn-lg">
+                            <i class="bi bi-camera-fill me-2"></i> Train the AI
+                        </a>
+                        <a href="/game" class="btn btn-success btn-lg">
+                            <i class="bi bi-controller me-2"></i> Play Game
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-5">
         <div class="row justify-content-center">
-            <div class="col-md-8 text-center">
-                <h1 class="display-4 mb-4">AI Rock Paper Scissors</h1>
-                <p class="lead mb-4">Play Rock Paper Scissors against the computer using hand gestures and computer vision!</p>
-                
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h2 class="card-title">How It Works</h2>
-                        <ol class="text-start">
-                            <li>First, you'll need to train the AI to recognize your hand gestures</li>
-                            <li>The system will capture images of your rock, paper, and scissors gestures</li>
-                            <li>Once trained, you can play the game against the computer</li>
-                            <li>The AI will detect your gesture and the computer will make its choice</li>
-                            <li>The winner is determined by the traditional Rock Paper Scissors rules</li>
-                        </ol>
-                    </div>
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-6 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body d-flex flex-column">
-                                <h3 class="card-title">Training Mode</h3>
-                                <p class="card-text flex-grow-1">Train the AI to recognize your hand gestures for rock, paper, and scissors.</p>
-                                <a href="/training" class="btn btn-primary">Start Training</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body d-flex flex-column">
-                                <h3 class="card-title">Game Mode</h3>
-                                <p class="card-text flex-grow-1">Play Rock Paper Scissors against the computer using your trained model.</p>
-                                <a href="/game" class="btn btn-success">Play Game</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-body">
-                        <h2 class="card-title">Instructions</h2>
+            <div class="col-lg-10">
+                <!-- How it works section -->
+                <div class="card bg-dark-subtle mb-5 border-0 shadow">
+                    <div class="card-body p-4">
+                        <h2 class="card-title text-center mb-4">
+                            <i class="bi bi-info-circle me-2"></i>How It Works
+                        </h2>
                         <div class="row">
-                            <div class="col-md-4">
-                                <h4>Rock</h4>
-                                <p>Make a fist with your hand</p>
+                            <div class="col-md-4 mb-4">
+                                <div class="feature-item text-center">
+                                    <div class="feature-icon mb-3">
+                                        <i class="bi bi-camera-video fs-1"></i>
+                                    </div>
+                                    <h3 class="fs-4">Step 1: Train</h3>
+                                    <p class="mb-0">Train the AI by showing examples of your rock, paper, and scissors hand gestures.</p>
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <h4>Paper</h4>
-                                <p>Hold your hand flat with fingers together</p>
+                            <div class="col-md-4 mb-4">
+                                <div class="feature-item text-center">
+                                    <div class="feature-icon mb-3">
+                                        <i class="bi bi-cpu fs-1"></i>
+                                    </div>
+                                    <h3 class="fs-4">Step 2: AI Learns</h3>
+                                    <p class="mb-0">Our advanced machine learning algorithm learns to recognize your unique gesture style.</p>
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <h4>Scissors</h4>
-                                <p>Extend your index and middle fingers in a V shape</p>
+                            <div class="col-md-4 mb-4">
+                                <div class="feature-item text-center">
+                                    <div class="feature-icon mb-3">
+                                        <i class="bi bi-trophy fs-1"></i>
+                                    </div>
+                                    <h3 class="fs-4">Step 3: Play</h3>
+                                    <p class="mb-0">Make your move with hand gestures and compete against the computer opponent.</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="alert alert-info mt-3">
-                            <strong>Tip:</strong> For best results, train the model in the same lighting conditions and background that you'll use when playing the game.
+                    </div>
+                </div>
+
+                <!-- Gesture Guide -->
+                <div class="card mb-5 shadow">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h2 class="mb-0 text-center">
+                            <i class="bi bi-hand-index-thumb me-2"></i>Gesture Guide
+                        </h2>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-4 mb-4 mb-md-0">
+                                <div class="gesture-guide text-center">
+                                    <div class="gesture-icon bg-dark-subtle p-4 rounded-circle mb-3 mx-auto d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-circle-fill fs-1"></i>
+                                    </div>
+                                    <h3 class="fs-4">Rock</h3>
+                                    <p>Make a fist with your hand, keeping your fingers closed.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-4 mb-md-0">
+                                <div class="gesture-guide text-center">
+                                    <div class="gesture-icon bg-dark-subtle p-4 rounded-circle mb-3 mx-auto d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-file-earmark fs-1"></i>
+                                    </div>
+                                    <h3 class="fs-4">Paper</h3>
+                                    <p>Open your palm flat with fingers extended and together.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="gesture-guide text-center">
+                                    <div class="gesture-icon bg-dark-subtle p-4 rounded-circle mb-3 mx-auto d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-scissors fs-1"></i>
+                                    </div>
+                                    <h3 class="fs-4">Scissors</h3>
+                                    <p>Extend your index and middle fingers in a V shape, keeping other fingers closed.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips Section -->
+                <div class="card shadow">
+                    <div class="card-header bg-warning text-dark py-3">
+                        <h2 class="mb-0 text-center">
+                            <i class="bi bi-lightbulb me-2"></i>Tips for Best Results
+                        </h2>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <div class="me-3 tip-icon">
+                                        <i class="bi bi-brightness-high fs-3"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="fs-5">Good Lighting</h4>
+                                        <p class="mb-0">Ensure your hand is well-lit and clearly visible to the camera.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <div class="me-3 tip-icon">
+                                        <i class="bi bi-aspect-ratio fs-3"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="fs-5">Positioning</h4>
+                                        <p class="mb-0">Center your hand in the camera view, about 1-2 feet from the webcam.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <div class="me-3 tip-icon">
+                                        <i class="bi bi-palette fs-3"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="fs-5">Background</h4>
+                                        <p class="mb-0">Use a plain, solid background that contrasts with your hand.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <div class="me-3 tip-icon">
+                                        <i class="bi bi-arrow-repeat fs-3"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="fs-5">Multiple Angles</h4>
+                                        <p class="mb-0">Provide training samples from different hand angles for better recognition.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <footer class="py-4 bg-dark mt-5">
+        <div class="container text-center">
+            <p class="mb-0 text-secondary">Ready to challenge the AI? Start by training your hand gestures!</p>
+            <div class="mt-3">
+                <a href="/training" class="btn btn-outline-primary me-2">Train the AI</a>
+                <a href="/game" class="btn btn-outline-success">Play Game</a>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

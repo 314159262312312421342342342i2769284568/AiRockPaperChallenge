@@ -10,12 +10,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerScore = document.getElementById('player-score');
     const computerScore = document.getElementById('computer-score');
     const roundsPlayed = document.getElementById('rounds-played');
+    const roundNumber = document.getElementById('round-number');
     const detectionInfo = document.getElementById('detection-info');
     const modelNotTrained = document.getElementById('model-not-trained');
     const gameContainer = document.getElementById('game-container');
+    const cameraOverlay = document.getElementById('camera-overlay');
+    const countdownElement = document.getElementById('countdown');
     
     // Game state
     let gameActive = false;
+    let countdownActive = false;
     
     // Initialize camera
     CameraHandler.init('webcam', 'canvas')
@@ -32,20 +36,65 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('Camera error: ' + error.message);
         });
     
-    // Play button click handler
+    // Play button click handler with countdown
     playBtn.addEventListener('click', async () => {
         if (!CameraHandler.isActive()) {
             showError('Camera is not active. Please refresh the page.');
             return;
         }
         
+        if (countdownActive) return; // Prevent multiple clicks during countdown
+        
         try {
-            // Disable button while processing
+            // Disable button during countdown and processing
             playBtn.disabled = true;
+            countdownActive = true;
             
-            // Show detection in progress
+            // Update detection info
             detectionInfo.className = 'alert alert-info';
-            detectionInfo.textContent = 'Detecting your gesture...';
+            detectionInfo.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="me-3 fs-3"><i class="bi bi-hourglass-split"></i></div>
+                    <div>Get ready! Hold your gesture steady...</div>
+                </div>
+            `;
+            
+            // Reset result display during countdown
+            resultText.textContent = 'Get Ready!';
+            resultText.className = 'fs-2';
+            
+            // Reset gesture displays
+            playerGestureDisplay.innerHTML = '<i class="bi bi-hand-index"></i>';
+            playerGestureText.textContent = 'Ready';
+            computerGestureDisplay.innerHTML = '<i class="bi bi-cpu"></i>';
+            computerGestureText.textContent = 'Ready';
+            
+            // Show countdown overlay
+            cameraOverlay.style.display = 'flex';
+            
+            // Start countdown from 3
+            countdownElement.textContent = '3';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            countdownElement.textContent = '2';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            countdownElement.textContent = '1';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            countdownElement.textContent = 'GO!';
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Hide countdown overlay
+            cameraOverlay.style.display = 'none';
+            
+            // Show processing state
+            detectionInfo.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="me-3 fs-3"><i class="bi bi-camera"></i></div>
+                    <div>Detecting your gesture...</div>
+                </div>
+            `;
             
             // Capture frame
             const imageData = CameraHandler.captureFrame();
@@ -68,37 +117,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateGameResults(data);
             } else {
                 detectionInfo.className = 'alert alert-danger';
-                detectionInfo.textContent = 'Error: ' + data.error;
+                detectionInfo.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-3"><i class="bi bi-exclamation-triangle"></i></div>
+                        <div>Error: ${data.error}</div>
+                    </div>
+                `;
             }
             
-            // Re-enable button
+            // Re-enable button and reset countdown state
             playBtn.disabled = false;
+            countdownActive = false;
         } catch (error) {
             console.error('Error playing round:', error);
             detectionInfo.className = 'alert alert-danger';
-            detectionInfo.textContent = 'Error playing round: ' + error.message;
+            detectionInfo.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="me-3 fs-3"><i class="bi bi-exclamation-triangle"></i></div>
+                    <div>Error playing round: ${error.message}</div>
+                </div>
+            `;
+            
+            // Hide countdown overlay if error occurs
+            cameraOverlay.style.display = 'none';
+            
+            // Re-enable button and reset countdown state
             playBtn.disabled = false;
+            countdownActive = false;
         }
     });
     
-    // Reset button click handler
+    // Reset button click handler with enhanced feedback
     resetBtn.addEventListener('click', () => {
-        // Reset game state
-        playerScore.textContent = '0';
-        computerScore.textContent = '0';
-        roundsPlayed.textContent = '0';
+        // Add reset animation
+        const animateReset = () => {
+            // Apply fade-out effect
+            gameContainer.style.opacity = '0.5';
+            gameContainer.style.transition = 'opacity 0.3s ease';
+            
+            setTimeout(() => {
+                // Reset game state
+                playerScore.textContent = '0';
+                computerScore.textContent = '0';
+                roundsPlayed.textContent = '0';
+                roundNumber.textContent = '0';
+                
+                // Reset displays
+                playerGestureDisplay.innerHTML = '<i class="bi bi-hand-index"></i>';
+                computerGestureDisplay.innerHTML = '<i class="bi bi-cpu"></i>';
+                playerGestureText.textContent = 'Ready';
+                computerGestureText.textContent = 'Ready';
+                resultText.textContent = 'Make your move!';
+                resultText.className = 'fs-2';
+                
+                // Reset info with icon
+                detectionInfo.className = 'alert alert-success';
+                detectionInfo.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-3"><i class="bi bi-check-circle"></i></div>
+                        <div>Game reset successfully! Ready to play.</div>
+                    </div>
+                `;
+                
+                // Apply fade-in effect
+                gameContainer.style.opacity = '1';
+            }, 300);
+        };
         
-        // Reset displays
-        playerGestureDisplay.innerHTML = '<i class="bi bi-question-circle"></i>';
-        computerGestureDisplay.innerHTML = '<i class="bi bi-question-circle"></i>';
-        playerGestureText.textContent = 'Ready';
-        computerGestureText.textContent = 'Ready';
-        resultText.textContent = 'Make a gesture and click "Play Round"';
-        resultText.className = '';
-        
-        // Reset info
-        detectionInfo.className = 'alert alert-secondary';
-        detectionInfo.textContent = 'Game reset. Ready to play!';
+        animateReset();
     });
     
     // Check if model is trained
@@ -123,7 +209,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameContainer.style.display = 'flex';
                 
                 detectionInfo.className = 'alert alert-success';
-                detectionInfo.textContent = 'Model loaded! Ready to play.';
+                detectionInfo.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-3"><i class="bi bi-check-circle"></i></div>
+                        <div>AI model loaded successfully! Click "Play Round" to start.</div>
+                    </div>
+                `;
             } else {
                 // Model is not trained
                 gameActive = false;
@@ -136,8 +227,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Update game results with enhanced feedback
+    // Update game results with enhanced feedback and animations
     function updateGameResults(data) {
+        // Update round counter
+        roundNumber.textContent = data.game_state.rounds;
+        
         // Handle 'unknown' gesture
         const playerGesture = data.player_gesture === 'unknown' ? 'unrecognized gesture' : data.player_gesture;
         
@@ -146,6 +240,10 @@ document.addEventListener('DOMContentLoaded', () => {
         playerGestureText.textContent = capitalizeFirstLetter(playerGesture);
         playerGestureDisplay.innerHTML = getGestureIcon(data.player_gesture);
         
+        // Anticipation pause before showing computer's choice
+        resultText.textContent = 'Waiting for computer...';
+        resultText.className = 'fs-2 text-info';
+        
         // Delay computer's "choice" for dramatic effect
         setTimeout(() => {
             // Update computer gesture with animation
@@ -153,108 +251,139 @@ document.addEventListener('DOMContentLoaded', () => {
             computerGestureText.textContent = capitalizeFirstLetter(data.computer_choice);
             computerGestureDisplay.innerHTML = getGestureIcon(data.computer_choice);
             
-            // Update result with more expressive messaging
-            let resultMessage = '';
-            let resultClass = '';
-            
-            switch (data.result) {
-                case 'win':
-                    resultMessage = '🎉 You Win! 🎉';
-                    resultClass = 'text-success fw-bold';
-                    // Add victory animation
-                    playerGestureDisplay.classList.add('winner-pulse');
-                    break;
-                case 'lose':
-                    resultMessage = 'Computer Wins!';
-                    resultClass = 'text-danger fw-bold';
-                    // Add defeat animation
-                    computerGestureDisplay.classList.add('winner-pulse');
-                    break;
-                case 'tie':
-                    resultMessage = 'It\'s a Tie!';
-                    resultClass = 'text-warning fw-bold';
-                    // Add tie animation
-                    playerGestureDisplay.classList.add('tie-pulse');
-                    computerGestureDisplay.classList.add('tie-pulse');
-                    break;
-                default:
-                    resultMessage = 'Unexpected Result';
-                    resultClass = 'text-info';
-            }
-            
-            resultText.textContent = resultMessage;
-            resultText.className = resultClass;
-            
-            // Update scoreboard with animation
-            const oldPlayerScore = parseInt(playerScore.textContent) || 0;
-            const oldComputerScore = parseInt(computerScore.textContent) || 0;
-            const oldRoundsPlayed = parseInt(roundsPlayed.textContent) || 0;
-            
-            if (data.game_state.player_score > oldPlayerScore) {
-                playerScore.classList.add('score-change');
-            }
-            
-            if (data.game_state.computer_score > oldComputerScore) {
-                computerScore.classList.add('score-change');
-            }
-            
-            if (data.game_state.rounds > oldRoundsPlayed) {
-                roundsPlayed.classList.add('score-change');
-            }
-            
-            playerScore.textContent = data.game_state.player_score;
-            computerScore.textContent = data.game_state.computer_score;
-            roundsPlayed.textContent = data.game_state.rounds;
-            
-            // Update detection info with confidence level indication
-            let confidenceClass = 'alert-success';
-            let confidenceMsg = '';
-            
-            if (data.player_gesture === 'unknown') {
-                confidenceClass = 'alert-warning';
-                confidenceMsg = 'Your gesture was not recognized clearly. Try repositioning your hand.';
-            } else {
-                confidenceClass = 'alert-success';
-                confidenceMsg = `Detected: ${capitalizeFirstLetter(data.player_gesture)}`;
-            }
-            
-            detectionInfo.className = `alert ${confidenceClass}`;
-            detectionInfo.textContent = confidenceMsg;
-            
-            // Remove animation classes after animation completes
+            // Brief pause before showing the result
             setTimeout(() => {
-                playerGestureDisplay.classList.remove('gesture-animation', 'winner-pulse', 'tie-pulse');
-                computerGestureDisplay.classList.remove('gesture-animation', 'winner-pulse', 'tie-pulse');
-                playerScore.classList.remove('score-change');
-                computerScore.classList.remove('score-change');
-                roundsPlayed.classList.remove('score-change');
-            }, 1000);
+                // Update result with more expressive messaging
+                let resultMessage = '';
+                let resultClass = '';
+                let resultIcon = '';
+                
+                switch (data.result) {
+                    case 'win':
+                        resultMessage = 'You Win!';
+                        resultClass = 'fs-2 text-success fw-bold';
+                        resultIcon = '🏆';
+                        // Add victory animation
+                        playerGestureDisplay.classList.add('winner-pulse');
+                        break;
+                    case 'lose':
+                        resultMessage = 'Computer Wins!';
+                        resultClass = 'fs-2 text-danger fw-bold';
+                        resultIcon = '💻';
+                        // Add defeat animation
+                        computerGestureDisplay.classList.add('winner-pulse');
+                        break;
+                    case 'tie':
+                        resultMessage = 'It\'s a Tie!';
+                        resultClass = 'fs-2 text-warning fw-bold';
+                        resultIcon = '🤝';
+                        // Add tie animation
+                        playerGestureDisplay.classList.add('tie-pulse');
+                        computerGestureDisplay.classList.add('tie-pulse');
+                        break;
+                    default:
+                        resultMessage = 'Unexpected Result';
+                        resultClass = 'fs-2 text-info';
+                        resultIcon = '❓';
+                }
+                
+                resultText.innerHTML = `${resultIcon} ${resultMessage} ${resultIcon}`;
+                resultText.className = resultClass;
+                
+                // Update scoreboard with animation
+                const oldPlayerScore = parseInt(playerScore.textContent) || 0;
+                const oldComputerScore = parseInt(computerScore.textContent) || 0;
+                const oldRoundsPlayed = parseInt(roundsPlayed.textContent) || 0;
+                
+                if (data.game_state.player_score > oldPlayerScore) {
+                    playerScore.classList.add('score-change');
+                }
+                
+                if (data.game_state.computer_score > oldComputerScore) {
+                    computerScore.classList.add('score-change');
+                }
+                
+                if (data.game_state.rounds > oldRoundsPlayed) {
+                    roundsPlayed.classList.add('score-change');
+                }
+                
+                playerScore.textContent = data.game_state.player_score;
+                computerScore.textContent = data.game_state.computer_score;
+                roundsPlayed.textContent = data.game_state.rounds;
+                
+                // Update detection info with enhanced feedback
+                let confidenceIcon = '';
+                let confidenceClass = '';
+                let confidenceTitle = '';
+                let confidenceMsg = '';
+                
+                if (data.player_gesture === 'unknown') {
+                    confidenceClass = 'alert-warning';
+                    confidenceIcon = 'bi-question-circle';
+                    confidenceTitle = 'Gesture Not Recognized';
+                    confidenceMsg = 'Try repositioning your hand or adjusting lighting';
+                } else {
+                    confidenceClass = 'alert-success';
+                    confidenceIcon = 'bi-hand-thumbs-up';
+                    confidenceTitle = 'Gesture Detected Successfully';
+                    confidenceMsg = `${capitalizeFirstLetter(data.player_gesture)} was recognized with good confidence`;
+                }
+                
+                detectionInfo.className = `alert ${confidenceClass} border-0 mb-3`;
+                detectionInfo.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="me-3 fs-3"><i class="bi ${confidenceIcon}"></i></div>
+                        <div>
+                            <strong>${confidenceTitle}</strong>
+                            <div>${confidenceMsg}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove animation classes after animation completes
+                setTimeout(() => {
+                    playerGestureDisplay.classList.remove('gesture-animation', 'winner-pulse', 'tie-pulse');
+                    computerGestureDisplay.classList.remove('gesture-animation', 'winner-pulse', 'tie-pulse');
+                    playerScore.classList.remove('score-change');
+                    computerScore.classList.remove('score-change');
+                    roundsPlayed.classList.remove('score-change');
+                }, 1200);
+                
+            }, 500); // Delay showing result
             
-        }, 500); // Delay computer choice reveal for 500ms
+        }, 800); // Delay computer choice reveal
     }
     
-    // Get icon for gesture
+    // Get icon for gesture with enhanced styling
     function getGestureIcon(gesture) {
         switch (gesture) {
             case 'rock':
-                return '<i class="bi bi-circle-fill" style="font-size: 3rem;"></i>';
+                return '<i class="bi bi-circle-fill" style="font-size: 3.5rem; color: var(--bs-gray-300);"></i>';
             case 'paper':
-                return '<i class="bi bi-file-earmark" style="font-size: 3rem;"></i>';
+                return '<i class="bi bi-file-earmark" style="font-size: 3.5rem; color: var(--bs-info);"></i>';
             case 'scissors':
-                return '<i class="bi bi-scissors" style="font-size: 3rem;"></i>';
+                return '<i class="bi bi-scissors" style="font-size: 3.5rem; color: var(--bs-warning);"></i>';
+            case 'unknown':
+                return '<i class="bi bi-question-circle" style="font-size: 3.5rem; color: var(--bs-danger);"></i>';
             default:
-                return '<i class="bi bi-question-circle"></i>';
+                return '<i class="bi bi-hand-index" style="font-size: 3.5rem;"></i>';
         }
     }
     
     // Helper to capitalize first letter
     function capitalizeFirstLetter(string) {
+        if (typeof string !== 'string') return '';
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
     
-    // Show error message
+    // Show error message with icon
     function showError(message) {
         detectionInfo.className = 'alert alert-danger';
-        detectionInfo.textContent = message;
+        detectionInfo.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="me-3 fs-3"><i class="bi bi-exclamation-triangle"></i></div>
+                <div>${message}</div>
+            </div>
+        `;
     }
 });
