@@ -24,10 +24,35 @@ training_data = {
 model = None
 try:
     with open('hand_gesture_model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    logger.debug("Model loaded successfully")
+        model_data = pickle.load(f)
+        
+    # Check if it's the new model format (dictionary with model and scaler)
+    if isinstance(model_data, dict) and 'model' in model_data:
+        # Try to import the GestureClassifier for proper model loading
+        try:
+            from models.gesture_classifier import GestureClassifier
+            classifier = GestureClassifier()
+            classifier.model = model_data['model']
+            classifier.scaler = model_data.get('scaler')
+            classifier.class_labels = model_data.get('class_labels')
+            classifier.feature_importances = model_data.get('feature_importances')
+            classifier.is_trained = True
+            model = classifier
+            logger.debug("Enhanced gesture classifier model loaded successfully")
+        except ImportError:
+            # If import fails, just use the model directly
+            model = model_data['model']
+            logger.debug("Model loaded successfully (basic format)")
+    else:
+        # Old format - just the model directly
+        model = model_data
+        logger.debug("Legacy model format loaded successfully")
+        
 except FileNotFoundError:
     logger.debug("No model found, training will be required")
+except Exception as e:
+    logger.error(f"Error loading model: {str(e)}")
+    logger.debug("No model found or error loading model, training will be required")
 
 # Game state
 game_state = {
@@ -79,10 +104,13 @@ def capture_training_image():
         nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        # Process the image (convert to grayscale, resize, etc.)
+        # Use enhanced image processing from utils module
+        from utils.image_processing import preprocess_image, extract_features
+        
+        # Process the image with improved methods
         processed_img = preprocess_image(img)
         
-        # Extract features
+        # Extract enhanced features
         features = extract_features(processed_img)
         
         # Add to training data
@@ -91,13 +119,18 @@ def capture_training_image():
         # Get current counts
         counts = {k: len(v) for k, v in training_data.items()}
         
+        # Log the training progress
+        logger.debug(f"Added {gesture} image. Current counts: {counts}")
+        
         return jsonify({
             'success': True, 
-            'message': f'Captured {gesture} image', 
+            'message': f'Captured {gesture} image with enhanced features', 
             'counts': counts
         })
     except Exception as e:
         logger.error(f"Error processing training image: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/train_model', methods=['POST'])
@@ -116,7 +149,7 @@ def train_model():
         })
     
     try:
-        from sklearn.ensemble import RandomForestClassifier
+        from models.gesture_classifier import GestureClassifier
         
         # Prepare training data
         X = np.vstack([
@@ -131,15 +164,22 @@ def train_model():
             np.full(len(training_data['scissors']), 'scissors')
         ])
         
-        # Train a random forest classifier
-        model = RandomForestClassifier(n_estimators=50)
-        model.fit(X, y)
+        # Create and train the gesture classifier
+        classifier = GestureClassifier()
+        training_success = classifier.train(X, y)
         
-        # Save the model
-        with open('hand_gesture_model.pkl', 'wb') as f:
-            pickle.dump(model, f)
-        
-        return jsonify({'success': True, 'message': 'Model trained successfully!'})
+        if training_success:
+            # Save the model
+            classifier.save_model('hand_gesture_model.pkl')
+            
+            # Update global model
+            model = classifier
+            
+            logger.info("Model trained and saved successfully")
+            return jsonify({'success': True, 'message': 'Model trained successfully with improved accuracy!'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to train the model. Check the logs for details.'})
+            
     except Exception as e:
         logger.error(f"Error training model: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
@@ -166,14 +206,41 @@ def predict_gesture():
         nparr = np.frombuffer(image_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        # Process the image
+        # Use the enhanced image processing from utils module
+        from utils.image_processing import preprocess_image, extract_features
+        
+        # Process the image with improved methods
         processed_img = preprocess_image(img)
         
-        # Extract features
+        # Extract enhanced features
         features = extract_features(processed_img)
         
-        # Make prediction
-        prediction = model.predict([features])[0]
+        # Make prediction using our improved classifier
+        try:
+            if isinstance(model, dict) and 'model' in model:
+                # Handle dictionary format
+                model_obj = model.get('model')
+                if model_obj is not None and hasattr(model_obj, 'predict'):
+                    prediction = model_obj.predict([features])[0]
+                else:
+                    prediction = 'unknown'
+                logger.debug(f"Predicted gesture from dict model: {prediction}")
+            elif hasattr(model, 'predict') and callable(getattr(model, 'predict')):
+                # Handle GestureClassifier or direct model instance
+                if hasattr(model, 'is_trained') and getattr(model, 'is_trained', False):
+                    # It's our GestureClassifier
+                    prediction = model.predict(features)
+                else:
+                    # It's a direct scikit-learn model
+                    prediction = model.predict([features])[0]
+                logger.debug(f"Predicted gesture: {prediction}")
+            else:
+                # Fallback if model isn't properly loaded
+                logger.error(f"Model type not recognized for prediction: {type(model)}")
+                prediction = 'unknown'
+        except Exception as prediction_error:
+            logger.error(f"Error during prediction: {str(prediction_error)}")
+            prediction = 'unknown'  # Safe fallback
         
         # Generate computer choice
         computer_choice = np.random.choice(['rock', 'paper', 'scissors'])
@@ -190,6 +257,9 @@ def predict_gesture():
         game_state['rounds'] += 1
         game_state['result'] = result
         
+        # Log the results for debugging
+        logger.debug(f"Player: {prediction}, Computer: {computer_choice}, Result: {result}")
+        
         return jsonify({
             'success': True,
             'player_gesture': prediction,
@@ -199,33 +269,13 @@ def predict_gesture():
         })
     except Exception as e:
         logger.error(f"Error predicting gesture: {str(e)}")
+        # Log error details for debugging
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)})
 
-def preprocess_image(img):
-    """Preprocess image for feature extraction"""
-    # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    
-    # Apply Gaussian blur to reduce noise
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-    
-    # Apply threshold to create binary image
-    _, threshold = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    
-    # Resize to a standard size
-    resized = cv2.resize(threshold, (64, 64))
-    
-    return resized
-
-def extract_features(img):
-    """Extract features from processed image"""
-    # For a simple approach, we'll just flatten the image and use pixel values as features
-    features = img.flatten() / 255.0  # Normalize pixel values
-    
-    # Calculate HOG features (optional, for better accuracy)
-    # This is a simplified version, for real applications consider using proper HOG implementation
-    
-    return features
+# The preprocess_image and extract_features functions have been moved to utils/image_processing.py
+# and are now imported when needed
 
 def determine_winner(player, computer):
     """Determine winner of Rock Paper Scissors round"""

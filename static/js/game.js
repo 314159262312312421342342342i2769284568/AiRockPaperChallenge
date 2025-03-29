@@ -136,46 +136,101 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Update game results
+    // Update game results with enhanced feedback
     function updateGameResults(data) {
-        // Update player gesture
-        playerGestureText.textContent = capitalizeFirstLetter(data.player_gesture);
+        // Handle 'unknown' gesture
+        const playerGesture = data.player_gesture === 'unknown' ? 'unrecognized gesture' : data.player_gesture;
+        
+        // Update player gesture with animation
+        playerGestureDisplay.classList.add('gesture-animation');
+        playerGestureText.textContent = capitalizeFirstLetter(playerGesture);
         playerGestureDisplay.innerHTML = getGestureIcon(data.player_gesture);
         
-        // Update computer gesture
-        computerGestureText.textContent = capitalizeFirstLetter(data.computer_choice);
-        computerGestureDisplay.innerHTML = getGestureIcon(data.computer_choice);
-        
-        // Update result
-        let resultMessage = '';
-        let resultClass = '';
-        
-        switch (data.result) {
-            case 'win':
-                resultMessage = 'You Win!';
-                resultClass = 'text-success';
-                break;
-            case 'lose':
-                resultMessage = 'Computer Wins!';
-                resultClass = 'text-danger';
-                break;
-            case 'tie':
-                resultMessage = 'It\'s a Tie!';
-                resultClass = 'text-warning';
-                break;
-        }
-        
-        resultText.textContent = resultMessage;
-        resultText.className = resultClass;
-        
-        // Update scoreboard
-        playerScore.textContent = data.game_state.player_score;
-        computerScore.textContent = data.game_state.computer_score;
-        roundsPlayed.textContent = data.game_state.rounds;
-        
-        // Update detection info
-        detectionInfo.className = 'alert alert-success';
-        detectionInfo.textContent = `Detected: ${capitalizeFirstLetter(data.player_gesture)}`;
+        // Delay computer's "choice" for dramatic effect
+        setTimeout(() => {
+            // Update computer gesture with animation
+            computerGestureDisplay.classList.add('gesture-animation');
+            computerGestureText.textContent = capitalizeFirstLetter(data.computer_choice);
+            computerGestureDisplay.innerHTML = getGestureIcon(data.computer_choice);
+            
+            // Update result with more expressive messaging
+            let resultMessage = '';
+            let resultClass = '';
+            
+            switch (data.result) {
+                case 'win':
+                    resultMessage = '🎉 You Win! 🎉';
+                    resultClass = 'text-success fw-bold';
+                    // Add victory animation
+                    playerGestureDisplay.classList.add('winner-pulse');
+                    break;
+                case 'lose':
+                    resultMessage = 'Computer Wins!';
+                    resultClass = 'text-danger fw-bold';
+                    // Add defeat animation
+                    computerGestureDisplay.classList.add('winner-pulse');
+                    break;
+                case 'tie':
+                    resultMessage = 'It\'s a Tie!';
+                    resultClass = 'text-warning fw-bold';
+                    // Add tie animation
+                    playerGestureDisplay.classList.add('tie-pulse');
+                    computerGestureDisplay.classList.add('tie-pulse');
+                    break;
+                default:
+                    resultMessage = 'Unexpected Result';
+                    resultClass = 'text-info';
+            }
+            
+            resultText.textContent = resultMessage;
+            resultText.className = resultClass;
+            
+            // Update scoreboard with animation
+            const oldPlayerScore = parseInt(playerScore.textContent) || 0;
+            const oldComputerScore = parseInt(computerScore.textContent) || 0;
+            const oldRoundsPlayed = parseInt(roundsPlayed.textContent) || 0;
+            
+            if (data.game_state.player_score > oldPlayerScore) {
+                playerScore.classList.add('score-change');
+            }
+            
+            if (data.game_state.computer_score > oldComputerScore) {
+                computerScore.classList.add('score-change');
+            }
+            
+            if (data.game_state.rounds > oldRoundsPlayed) {
+                roundsPlayed.classList.add('score-change');
+            }
+            
+            playerScore.textContent = data.game_state.player_score;
+            computerScore.textContent = data.game_state.computer_score;
+            roundsPlayed.textContent = data.game_state.rounds;
+            
+            // Update detection info with confidence level indication
+            let confidenceClass = 'alert-success';
+            let confidenceMsg = '';
+            
+            if (data.player_gesture === 'unknown') {
+                confidenceClass = 'alert-warning';
+                confidenceMsg = 'Your gesture was not recognized clearly. Try repositioning your hand.';
+            } else {
+                confidenceClass = 'alert-success';
+                confidenceMsg = `Detected: ${capitalizeFirstLetter(data.player_gesture)}`;
+            }
+            
+            detectionInfo.className = `alert ${confidenceClass}`;
+            detectionInfo.textContent = confidenceMsg;
+            
+            // Remove animation classes after animation completes
+            setTimeout(() => {
+                playerGestureDisplay.classList.remove('gesture-animation', 'winner-pulse', 'tie-pulse');
+                computerGestureDisplay.classList.remove('gesture-animation', 'winner-pulse', 'tie-pulse');
+                playerScore.classList.remove('score-change');
+                computerScore.classList.remove('score-change');
+                roundsPlayed.classList.remove('score-change');
+            }, 1000);
+            
+        }, 500); // Delay computer choice reveal for 500ms
     }
     
     // Get icon for gesture
