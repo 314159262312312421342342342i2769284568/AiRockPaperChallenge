@@ -17,25 +17,60 @@ app.secret_key = os.environ.get("SESSION_SECRET", "default_secret_key")
 # Training data storage - we'll save this to disk to persist between server restarts
 TRAINING_DATA_FILE = 'training_data.json'
 
-# Initialize training data
+# Initialize training data and feature store
 training_data = {
     'rock': [],
     'paper': [],
     'scissors': []
 }
 
-# Load saved training data if it exists
+# Feature storage - persist features on disk to avoid inconsistencies
+FEATURES_DIR = 'training_features'
+os.makedirs(FEATURES_DIR, exist_ok=True)
+
+# Helper function to save feature vectors to disk
+def save_feature_vector(gesture, feature_vector, index):
+    feature_path = os.path.join(FEATURES_DIR, f"{gesture}_{index}.npy")
+    np.save(feature_path, feature_vector)
+    return feature_path
+
+# Helper function to load feature vectors from disk
+def load_feature_vector(gesture, index):
+    feature_path = os.path.join(FEATURES_DIR, f"{gesture}_{index}.npy")
+    if os.path.exists(feature_path):
+        return np.load(feature_path)
+    return None
+
+# We're changing our approach - instead of keeping features in memory,
+# we'll just store counts and load features from disk when needed
 try:
     if os.path.exists(TRAINING_DATA_FILE):
         with open(TRAINING_DATA_FILE, 'r') as f:
             counts = json.load(f)
             logger.debug(f"Loading training data counts: {counts}")
-            if 'rock' in counts and counts['rock'] > 0:
-                training_data['rock'] = [np.zeros(128) for _ in range(counts['rock'])]  # Placeholder
-            if 'paper' in counts and counts['paper'] > 0:
-                training_data['paper'] = [np.zeros(128) for _ in range(counts['paper'])]  # Placeholder
-            if 'scissors' in counts and counts['scissors'] > 0:
-                training_data['scissors'] = [np.zeros(128) for _ in range(counts['scissors'])]  # Placeholder
+            
+            # Validate and load actual feature files
+            for gesture in ['rock', 'paper', 'scissors']:
+                count = counts.get(gesture, 0)
+                training_data[gesture] = []
+                
+                # Check for feature files
+                for i in range(count):
+                    feature_path = os.path.join(FEATURES_DIR, f"{gesture}_{i}.npy")
+                    if os.path.exists(feature_path):
+                        # Just add placeholder - we'll load when needed
+                        training_data[gesture].append(i)  # Store index instead of feature
+                    else:
+                        logger.warning(f"Missing feature file: {feature_path}")
+                
+                # Update count based on actually found files
+                counts[gesture] = len(training_data[gesture])
+            
+            # Save validated counts back
+            with open(TRAINING_DATA_FILE, 'w') as f:
+                json.dump(counts, f)
+                
+            logger.debug(f"Validated training data counts: {counts}")
 except Exception as e:
     logger.error(f"Error loading training data counts: {str(e)}")
 
@@ -135,8 +170,13 @@ def capture_training_image():
         # Store feature dimensions for debugging
         logger.debug(f"Captured feature vector with shape: {features.shape if hasattr(features, 'shape') else len(features)}")
         
-        # Add to training data
-        training_data[gesture].append(features)
+        # Save feature vector to a file
+        index = len(training_data[gesture])
+        feature_path = save_feature_vector(gesture, features, index)
+        logger.debug(f"Saved feature vector to {feature_path}")
+        
+        # Add index to training data (not the actual feature vector)
+        training_data[gesture].append(index)
         
         # Get current counts
         counts = {k: len(v) for k, v in training_data.items()}
@@ -182,14 +222,39 @@ def train_model():
         from models.gesture_classifier import GestureClassifier
         import logging
         
-        # Debug the feature vectors dimensions
-        rock_features = np.array(training_data['rock'])
-        paper_features = np.array(training_data['paper'])
-        scissors_features = np.array(training_data['scissors'])
+        # Load feature vectors from disk for training
+        rock_features = []
+        for idx in training_data['rock']:
+            feature = load_feature_vector('rock', idx)
+            if feature is not None:
+                rock_features.append(feature)
         
-        logger.debug(f"Feature dimensions - Rock: {[f.shape if hasattr(f, 'shape') else len(f) for f in rock_features]}")
-        logger.debug(f"Feature dimensions - Paper: {[f.shape if hasattr(f, 'shape') else len(f) for f in paper_features]}")
-        logger.debug(f"Feature dimensions - Scissors: {[f.shape if hasattr(f, 'shape') else len(f) for f in scissors_features]}")
+        paper_features = []
+        for idx in training_data['paper']:
+            feature = load_feature_vector('paper', idx)
+            if feature is not None:
+                paper_features.append(feature)
+                
+        scissors_features = []
+        for idx in training_data['scissors']:
+            feature = load_feature_vector('scissors', idx)
+            if feature is not None:
+                scissors_features.append(feature)
+        
+        # Report loaded feature counts
+        logger.debug(f"Loaded feature vectors - Rock: {len(rock_features)}, Paper: {len(paper_features)}, Scissors: {len(scissors_features)}")
+        
+        # Check if we have enough loaded features
+        if min(len(rock_features), len(paper_features), len(scissors_features)) < 10:
+            return jsonify({
+                'success': False, 
+                'error': f'Not enough valid training data found on disk. Need at least 10 images per gesture. Currently have: Rock: {len(rock_features)}, Paper: {len(paper_features)}, Scissors: {len(scissors_features)}'
+            })
+        
+        # Debug the feature vectors dimensions
+        logger.debug(f"Feature dimensions - Rock: {[f.shape if hasattr(f, 'shape') else len(f) for f in rock_features[:3]]}")
+        logger.debug(f"Feature dimensions - Paper: {[f.shape if hasattr(f, 'shape') else len(f) for f in paper_features[:3]]}")
+        logger.debug(f"Feature dimensions - Scissors: {[f.shape if hasattr(f, 'shape') else len(f) for f in scissors_features[:3]]}")
         
         # Find the most common feature length to standardize
         all_lengths = []
