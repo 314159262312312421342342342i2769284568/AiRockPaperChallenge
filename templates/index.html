@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Rock Paper Scissors</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <h1 class="display-4 mb-4">AI Rock Paper Scissors</h1>
+                <p class="lead mb-4">Play Rock Paper Scissors against the computer using hand gestures and computer vision!</p>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h2 class="card-title">How It Works</h2>
+                        <ol class="text-start">
+                            <li>First, you'll need to train the AI to recognize your hand gestures</li>
+                            <li>The system will capture images of your rock, paper, and scissors gestures</li>
+                            <li>Once trained, you can play the game against the computer</li>
+                            <li>The AI will detect your gesture and the computer will make its choice</li>
+                            <li>The winner is determined by the traditional Rock Paper Scissors rules</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body d-flex flex-column">
+                                <h3 class="card-title">Training Mode</h3>
+                                <p class="card-text flex-grow-1">Train the AI to recognize your hand gestures for rock, paper, and scissors.</p>
+                                <a href="/training" class="btn btn-primary">Start Training</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body d-flex flex-column">
+                                <h3 class="card-title">Game Mode</h3>
+                                <p class="card-text flex-grow-1">Play Rock Paper Scissors against the computer using your trained model.</p>
+                                <a href="/game" class="btn btn-success">Play Game</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="card-title">Instructions</h2>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h4>Rock</h4>
+                                <p>Make a fist with your hand</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h4>Paper</h4>
+                                <p>Hold your hand flat with fingers together</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h4>Scissors</h4>
+                                <p>Extend your index and middle fingers in a V shape</p>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <strong>Tip:</strong> For best results, train the model in the same lighting conditions and background that you'll use when playing the game.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

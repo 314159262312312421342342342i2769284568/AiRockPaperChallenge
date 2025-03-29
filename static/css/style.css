@@ -1,0 +1,94 @@
+/* Custom styles for Rock Paper Scissors game */
+
+/* Camera container */
+#camera-container {
+    position: relative;
+    max-width: 100%;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #1a1a1a;
+}
+
+#webcam {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Gesture display */
+.gesture-display {
+    font-size: 3rem;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+/* Game result styling */
+#result-text {
+    padding: 15px 0;
+    font-weight: bold;
+}
+
+/* Progress bars */
+.progress {
+    height: 25px;
+    background-color: var(--bs-dark);
+}
+
+.progress-bar {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+/* Card customization */
+.card {
+    border-width: 2px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+/* Button styling */
+.btn {
+    font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .gesture-display {
+        font-size: 2.5rem;
+        height: 80px;
+    }
+    
+    #result-text {
+        font-size: 1.5rem;
+    }
+}
+
+/* Training page styles */
+.gesture-selector .btn {
+    min-width: 80px;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.text-success, .text-danger, .text-warning {
+    animation: pulse 1s;
+}

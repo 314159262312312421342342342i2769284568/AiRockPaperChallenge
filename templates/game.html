@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Game - AI Rock Paper Scissors</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Rock Paper Scissors Game</h1>
+                    <a href="/" class="btn btn-outline-secondary"><i class="bi bi-house-door"></i> Home</a>
+                </div>
+
+                <div class="card mb-4" id="model-not-trained" style="display: none;">
+                    <div class="card-body text-center">
+                        <h3 class="text-warning"><i class="bi bi-exclamation-triangle"></i> Model Not Trained</h3>
+                        <p>You need to train the AI model before playing the game.</p>
+                        <a href="/training" class="btn btn-primary">Go to Training</a>
+                    </div>
+                </div>
+
+                <div class="row" id="game-container">
+                    <div class="col-md-7">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h3 class="mb-0">Camera Feed</h3>
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="camera-container" class="mb-3">
+                                    <video id="webcam" autoplay playsinline class="img-fluid"></video>
+                                    <canvas id="canvas" style="display: none;"></canvas>
+                                </div>
+                                <div class="d-flex justify-content-center">
+                                    <button id="play-btn" class="btn btn-lg btn-success">
+                                        <i class="bi bi-play-fill"></i> Play Round
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h3 class="mb-0">Game Instructions</h3>
+                            </div>
+                            <div class="card-body">
+                                <ol>
+                                    <li>Position your hand in front of the camera</li>
+                                    <li>Make a rock, paper, or scissors gesture</li>
+                                    <li>Click "Play Round" to have the AI detect your gesture</li>
+                                    <li>The computer will make its choice</li>
+                                    <li>The winner is determined by the standard rules</li>
+                                </ol>
+                                <div class="alert alert-info">
+                                    <strong>Rules:</strong>
+                                    <ul>
+                                        <li>Rock crushes Scissors</li>
+                                        <li>Scissors cuts Paper</li>
+                                        <li>Paper covers Rock</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-5">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h3 class="mb-0">Game Results</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <div class="col-6 text-center">
+                                        <h4>You</h4>
+                                        <div id="player-gesture-display" class="gesture-display">
+                                            <i class="bi bi-question-circle"></i>
+                                        </div>
+                                        <div id="player-gesture-text">Ready</div>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <h4>Computer</h4>
+                                        <div id="computer-gesture-display" class="gesture-display">
+                                            <i class="bi bi-question-circle"></i>
+                                        </div>
+                                        <div id="computer-gesture-text">Ready</div>
+                                    </div>
+                                </div>
+                                
+                                <div id="result-display" class="text-center mb-3">
+                                    <h3 id="result-text">Make a gesture and click "Play Round"</h3>
+                                </div>
+                                
+                                <div class="card bg-dark">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Scoreboard</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col">
+                                                <h2 id="player-score">0</h2>
+                                                <p>You</p>
+                                            </div>
+                                            <div class="col">
+                                                <h2 id="computer-score">0</h2>
+                                                <p>Computer</p>
+                                            </div>
+                                            <div class="col">
+                                                <h2 id="rounds-played">0</h2>
+                                                <p>Rounds</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="mb-0">Detection Info</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="detection-info" class="alert alert-secondary">
+                                    Waiting for game to start...
+                                </div>
+                                <button id="reset-game" class="btn btn-warning w-100">
+                                    <i class="bi bi-arrow-clockwise"></i> Reset Game
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/camera.js"></script>
+    <script src="/static/js/game.js"></script>
+</body>
+</html>
