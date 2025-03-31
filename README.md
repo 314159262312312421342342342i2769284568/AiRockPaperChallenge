@@ -1,0 +1,1 @@
+This is my visioneer project which is called Rock, Paper, Scissors AI. You first take pictures your hand signals (rock paper scissors), then you click a button which trains the AI to detect those signals. Finally you play the game with the AI and have fun! In total this took me about 13 hours to make, and uses open cv and other libraries to detect the hand motions.
